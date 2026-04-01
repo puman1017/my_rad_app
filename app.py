@@ -11,11 +11,12 @@ st.set_page_config(page_title="GRPR-Positive PCa Prediction System", layout="wid
 st.markdown("""
 <style>
     .main-title {
-        font-size: 3rem;
+        font-size: 4rem;
         font-weight: bold;
         color: #2c3e50;
         text-align: center;
         margin-bottom: 1rem;
+        letter-spacing: -0.5px;
     }
     .paper-title {
         font-size: 0.9rem;
@@ -34,7 +35,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Title (enlarged, subtitle removed)
+# Title (enlarged to 4rem)
 st.markdown('<p class="main-title">🔬 GRPR-Positive Prostate Cancer Prediction</p>', unsafe_allow_html=True)
 st.markdown('<p class="paper-title">Interpretable MLP-Based Multi-Regional Radiomics for Highly Accurate Discrimination of GRPR-Positive Prostate Cancer from Benign Accumulation</p>', unsafe_allow_html=True)
 st.markdown("---")
@@ -219,7 +220,6 @@ st.header(f"📊 {selected_model}")
 input_method = st.radio("Select Input Method", ["Manual Input", "Upload CSV File"], horizontal=True)
 
 if input_method == "Manual Input":
-    # Removed subheaders
     cols = st.columns(3)
     input_values = {}
     
@@ -252,10 +252,11 @@ if input_method == "Manual Input":
                 
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    result_label = "GRPR-Positive" if pred == 1 else "Benign"
+                    # Changed from GRPR-Positive to True-Positive
+                    result_label = "True-Positive" if pred == 1 else "Benign"
                     st.metric("Predicted Class", result_label)
                 with col2:
-                    st.metric("GRPR-Positive Probability", f"{prob:.2%}")
+                    st.metric("True-Positive Probability", f"{prob:.2%}")
                 with col3:
                     st.metric("Benign Probability", f"{1-prob:.2%}")
                 
@@ -299,8 +300,9 @@ else:  # Upload CSV
                             predictions, prob_positive = predict_with_threshold(model, norm_df, model_threshold)
                             
                             result_df = raw_df.copy()
-                            result_df['Prediction'] = ['GRPR-Positive' if p == 1 else 'Benign' for p in predictions]
-                            result_df['GRPR-Positive_Probability'] = prob_positive
+                            # Changed from GRPR-Positive to True-Positive
+                            result_df['Prediction'] = ['True-Positive' if p == 1 else 'Benign' for p in predictions]
+                            result_df['True-Positive_Probability'] = prob_positive
                             
                             st.markdown("---")
                             st.header("📊 Batch Prediction Results")
@@ -311,8 +313,8 @@ else:  # Upload CSV
                             with col1:
                                 st.metric("Total Samples", len(result_df))
                             with col2:
-                                positive_count = (result_df['Prediction'] == 'GRPR-Positive').sum()
-                                st.metric("Predicted GRPR-Positive", positive_count)
+                                positive_count = (result_df['Prediction'] == 'True-Positive').sum()
+                                st.metric("Predicted True-Positive", positive_count)
                             with col3:
                                 st.metric("Positive Rate", f"{positive_count/len(result_df):.1%}")
                             with col4:
