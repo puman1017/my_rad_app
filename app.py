@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import json
 import os
 
 # Page configuration
@@ -12,16 +11,11 @@ st.set_page_config(page_title="GRPR-Positive PCa Prediction System", layout="wid
 st.markdown("""
 <style>
     .main-title {
-        font-size: 2.5rem;
+        font-size: 3rem;
         font-weight: bold;
         color: #2c3e50;
         text-align: center;
-        margin-bottom: 0.5rem;
-    }
-    .subtitle {
-        text-align: center;
-        color: #7f8c8d;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
     }
     .paper-title {
         font-size: 0.9rem;
@@ -40,13 +34,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Title with appropriate icon
+# Title (enlarged, subtitle removed)
 st.markdown('<p class="main-title">🔬 GRPR-Positive Prostate Cancer Prediction</p>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Interpretable MLP-Based Multi-Regional Radiomics System</p>', unsafe_allow_html=True)
 st.markdown('<p class="paper-title">Interpretable MLP-Based Multi-Regional Radiomics for Highly Accurate Discrimination of GRPR-Positive Prostate Cancer from Benign Accumulation</p>', unsafe_allow_html=True)
 st.markdown("---")
 
-# ============ Model Thresholds (Optimal thresholds from validation set) ============
+# ============ Model Thresholds ============
 MODEL_THRESHOLDS = {
     "Synthesis Model": 0.704,
     "Whole-gland Radiomics": 0.654,
@@ -148,11 +141,8 @@ NORM_MAP = {
     "Lesion-based Radiomics": NORM_LESION
 }
 
-# ============ Prediction Function with Custom Threshold ============
+# ============ Prediction Function ============
 def predict_with_threshold(model, X, threshold):
-    """
-    Predict using custom threshold
-    """
     pred_proba = model.predict_proba(X)
     prob_positive = pred_proba[:, 1] if pred_proba.shape[1] == 2 else pred_proba[:, 0]
     predictions = (prob_positive >= threshold).astype(int)
@@ -160,7 +150,6 @@ def predict_with_threshold(model, X, threshold):
 
 # ============ Normalization Function ============
 def normalize_data(df, norm_params):
-    """Convert raw data to Z-score normalized values"""
     df_norm = df.copy()
     for col in df.columns:
         if col in norm_params:
@@ -186,11 +175,11 @@ def load_models():
         if os.path.exists(path):
             try:
                 models[name] = joblib.load(path)
-                st.sidebar.success(f"✅ {name} loaded")
+                st.sidebar.success(f"✅ {name}")
             except Exception as e:
-                st.sidebar.error(f"❌ {name} failed to load")
+                st.sidebar.error(f"❌ {name}")
         else:
-            st.sidebar.warning(f"⚠️ {name} file not found")
+            st.sidebar.warning(f"⚠️ {name}")
     
     return models
 
@@ -212,16 +201,14 @@ feature_list = FEATURES[selected_model]
 norm_params = NORM_MAP[selected_model]
 model_threshold = MODEL_THRESHOLDS[selected_model]
 
-# Display threshold information
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎯 Classification Threshold")
 st.sidebar.markdown(f'<span class="threshold-badge">Optimal threshold: {model_threshold:.3f}</span>', unsafe_allow_html=True)
 st.sidebar.caption("Based on validation set optimal Youden index")
 
 st.sidebar.info(f"📊 Feature Count: {len(feature_list)}")
-st.sidebar.info("💡 Enter raw clinical data; system will auto-normalize")
+st.sidebar.info("💡 Enter raw data")
 
-# Display feature list
 with st.sidebar.expander("View Feature List"):
     for f in feature_list:
         st.write(f"- {f}")
@@ -229,20 +216,15 @@ with st.sidebar.expander("View Feature List"):
 # ============ Main Interface ============
 st.header(f"📊 {selected_model}")
 
-# Input method selection
 input_method = st.radio("Select Input Method", ["Manual Input", "Upload CSV File"], horizontal=True)
 
 if input_method == "Manual Input":
-    st.subheader("Enter Raw Clinical Data")
-    st.caption("System will automatically perform Z-score normalization")
-    
-    # Create input form
+    # Removed subheaders
     cols = st.columns(3)
     input_values = {}
     
     for i, feature in enumerate(feature_list):
         with cols[i % 3]:
-            # Format display name
             display_name = feature.replace('_', ' ').replace('G_original_', 'G: ').replace('L_original_', 'L: ')
             input_values[feature] = st.number_input(
                 display_name,
@@ -252,11 +234,9 @@ if input_method == "Manual Input":
             )
     
     if st.button("🔍 Predict", type="primary", use_container_width=True):
-        # Build raw data
         raw_df = pd.DataFrame([input_values])
         
-        with st.spinner("Normalizing..."):
-            # Normalize
+        with st.spinner("Processing..."):
             norm_df = normalize_data(raw_df, norm_params)
         
         with st.spinner("Predicting..."):
@@ -279,10 +259,8 @@ if input_method == "Manual Input":
                 with col3:
                     st.metric("Benign Probability", f"{1-prob:.2%}")
                 
-                # Show threshold info
                 st.caption(f"Classification threshold: {model_threshold:.3f}")
                 
-                # Risk level based on probability
                 if prob >= 0.7:
                     st.error("⚠️ **High Risk**: Further clinical evaluation recommended")
                 elif prob >= 0.4:
@@ -290,7 +268,6 @@ if input_method == "Manual Input":
                 else:
                     st.success("✅ **Low Risk**: Favorable outcome")
                 
-                # Show normalized values (for debugging)
                 with st.expander("View Normalized Values"):
                     st.dataframe(norm_df)
                     
@@ -298,8 +275,7 @@ if input_method == "Manual Input":
                 st.error(f"Prediction failed: {e}")
 
 else:  # Upload CSV
-    uploaded_file = st.file_uploader("Upload CSV File (raw feature values)", type=['csv'])
-    st.caption("CSV must contain all required feature columns as listed above")
+    uploaded_file = st.file_uploader("Upload CSV File", type=['csv'])
     
     if uploaded_file is not None:
         try:
@@ -309,14 +285,12 @@ else:  # Upload CSV
             with st.expander("View Raw Data Preview"):
                 st.dataframe(raw_df.head())
             
-            # Check features
             missing = set(feature_list) - set(raw_df.columns)
             if missing:
                 st.warning(f"⚠️ Missing features: {missing}")
             else:
                 if st.button("🔍 Batch Predict", type="primary", use_container_width=True):
-                    with st.spinner("Normalizing..."):
-                        # Normalize
+                    with st.spinner("Processing..."):
                         norm_df = normalize_data(raw_df[feature_list], norm_params)
                     
                     with st.spinner("Predicting..."):
@@ -324,7 +298,6 @@ else:  # Upload CSV
                             model = models[selected_model]
                             predictions, prob_positive = predict_with_threshold(model, norm_df, model_threshold)
                             
-                            # Add results
                             result_df = raw_df.copy()
                             result_df['Prediction'] = ['GRPR-Positive' if p == 1 else 'Benign' for p in predictions]
                             result_df['GRPR-Positive_Probability'] = prob_positive
@@ -333,7 +306,6 @@ else:  # Upload CSV
                             st.header("📊 Batch Prediction Results")
                             st.dataframe(result_df)
                             
-                            # Statistics
                             st.markdown("### 📈 Summary Statistics")
                             col1, col2, col3, col4 = st.columns(4)
                             with col1:
@@ -346,7 +318,6 @@ else:  # Upload CSV
                             with col4:
                                 st.metric("Threshold", f"{model_threshold:.3f}")
                             
-                            # Download button
                             csv = result_df.to_csv(index=False)
                             st.download_button(
                                 label="📥 Download Results",
@@ -364,6 +335,6 @@ else:  # Upload CSV
 # ============ Footer ============
 st.markdown("---")
 st.markdown(
-    "<p style='text-align: center; color: gray;'>Interpretable MLP-Based Multi-Regional Radiomics System | Optimal thresholds: Synthesis=0.704, Whole-gland=0.654, Lesion-based=0.740 | For research use only</p>",
+    "<p style='text-align: center; color: gray;'>MLP-Based Multi-Regional Radiomics System | For research use only</p>",
     unsafe_allow_html=True
 )
